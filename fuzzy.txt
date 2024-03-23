@@ -258,3 +258,258 @@ int main(int argc, char *argv[])
 
     return EXIT_SUCCESS;
 }
+
+//flood fill
+#include <windows.h>
+#include <bits/stdc++.h>
+#include <iostream>
+#include <GL/glut.h>
+
+#define SCREEN_HT 480
+#define bgRed 1.0
+#define bgGreen 1.0
+#define bgBlue 1.0
+
+using namespace std;
+
+vector<pair<double, double> > polygonCoords;
+int polygonCoordCount = 0;
+
+float fillCol[3] = {0.078,1.0,0.0};
+
+
+void setPixel(int pointx, int pointy, float color[3])
+{
+    glBegin(GL_POINTS);
+        glColor3f(color[0], color[1], color[2]);
+        glVertex2f(pointx,pointy);
+    glEnd();
+    glFlush();
+}
+
+void getPixel(int x, int y, float pixels[3])
+{
+    glReadPixels(x,y,1.0,1.0,GL_RGB,GL_FLOAT,pixels);
+}
+
+void drawBoundingBox(int x1, int y1, int x2, int y2)
+{
+    glColor3f(0.0, 0.0, 0.0);
+    glBegin(GL_LINE_LOOP);
+        glVertex2i(x1, y1);
+        glVertex2i(x1, y2);
+        glVertex2i(x2, y2);
+        glVertex2i(x2, y1);
+    glEnd();
+    glFlush();
+}
+
+void display()
+{
+    glClearColor(bgRed, bgGreen,bgBlue, 1.0);
+    drawBoundingBox(150,250,200,300);
+    glFlush();
+}
+
+void floodfill(int x,int y,float oldcolor[3],float newcolor[3])
+{
+    float color[3];
+    getPixel(x, y, color);
+
+    if(color[0]==oldcolor[0] && color[1]==oldcolor[1] && color[2]==oldcolor[2])
+    {
+        setPixel(x,y,newcolor);
+        floodfill(x+1,y,oldcolor,newcolor);
+        floodfill(x-1,y,oldcolor,newcolor);
+        floodfill(x,y+1,oldcolor,newcolor);
+        floodfill(x,y-1,oldcolor,newcolor);
+        //floodfill(x+1, y+1, oldcolor, newcolor);
+        //floodfill(x-1,y-1,oldcolor,newcolor);
+        //floodfill(x+1,y-1,oldcolor,newcolor);
+        //floodfill(x-1,y+1,oldcolor,newcolor);
+     }
+}
+
+void plotPolygon()
+{
+    int i;
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_LINE_LOOP);
+        for(i=0; i<polygonCoordCount; i++)
+            glVertex2f(polygonCoords[i].first, polygonCoords[i].second);
+    glEnd();
+    glFlush();
+}
+
+bool polygonPlotted = false;
+
+void mouseHandler(int button, int state, int x, int y)
+{
+    y = SCREEN_HT - y;
+
+    if(button==GLUT_LEFT && state == GLUT_DOWN)
+    {
+        if(!polygonPlotted)
+        {
+            glColor3f(1.0,0.0,0.0);
+            glBegin(GL_POINTS);
+                glVertex2f(x,y);
+            glEnd();
+            glFlush();
+
+            polygonCoords.push_back(make_pair(x, y));
+            polygonCoordCount += 1;
+        }
+        else
+        {
+            float interior_color[3];
+            getPixel(x, y, interior_color);
+            floodfill(x, y, interior_color, fillCol);
+        }
+    }
+
+    else if(button==GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
+    {
+        plotPolygon();
+        polygonPlotted = true;
+    }
+}
+
+void myInit()
+{
+    glClearColor(1,1,1,1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0.0, 640.0, 0.0, 480.0);
+}
+
+int main(int argc, char** argv)
+{
+    glutInit(&argc,argv);
+    glutInitDisplayMode (GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(0,0);
+    glutCreateWindow("Flood-Fill-Recursive");
+    glutDisplayFunc(display);
+    myInit();
+    glutMouseFunc(mouseHandler);
+    glutMainLoop();
+    return 0;
+}
+//boundary fill
+#include <windows.h>
+#include<iostream>
+#include<GL/glut.h>
+#include<vector>
+
+#define SCR_HT 480
+
+using namespace std;
+
+vector<int> X, Y;
+float boundarycolor[] = {1, 0, 1};
+float fillColor[] = {0, 1, 0};  // Green.
+bool isFill = false;
+
+void init()
+{
+    glClearColor(0, 0, 0, 1);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, 640, 0, 480);
+}
+
+void display()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    glFlush();
+}
+
+// Function to implement Flood Fill Algorithm :
+void floodFill(int x, int y)
+{
+    float currColor[3];
+    glReadPixels(x, y, 1.0, 1.0, GL_RGB, GL_FLOAT, currColor);
+
+    if( (currColor[0] != boundarycolor[0] || currColor[1] != boundarycolor[1] || currColor[2] != boundarycolor[2]) &&
+       (currColor[0] != fillColor[0] || currColor[1] != fillColor[1] || currColor[2] != fillColor[2]))
+    {
+        // Changing the color of current pixel :
+        glBegin(GL_POINTS);
+            glColor3f(fillColor[0], fillColor[1], fillColor[2]);
+            glVertex2f(x, y);
+        glEnd();
+        glFlush();
+
+        floodFill(x + 1, y);
+        floodFill(x - 1, y);
+        floodFill(x, y + 1);
+        floodFill(x, y - 1);
+    }
+
+    return;
+}
+
+void mouse(int button, int state, int x, int y)
+{
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+    {
+        // Add the points to the vector.
+        if(isFill == false)
+        {
+            cout << "(" << x << ", " << y << ")" << endl;
+            y = SCR_HT - y;
+            X.push_back(x);
+            Y.push_back(y);
+
+            // Plotting the clicked point :
+            glBegin(GL_POINTS);
+                glColor3f(boundarycolor[0], boundarycolor[1], boundarycolor[2]);
+                glVertex2f(x, y);
+            glEnd();
+            glFlush();
+        }
+
+        // Fill the polygon
+        else
+        {
+            floodFill(x, SCR_HT - y);
+        }
+    }
+
+    if(button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
+    {
+        // Displaying the polygon :
+        glBegin(GL_LINE_LOOP);
+            glColor3f(boundarycolor[0], boundarycolor[1], boundarycolor[2]);
+            for(int i = 0;i < X.size();i++)
+            {
+                glVertex2i(X[i], Y[i]);
+            }
+        glEnd();
+        glFlush();
+
+        isFill = true;
+    }
+
+}
+
+int main(int argc, char **argv)
+{
+    glutInit(&argc, argv);
+    glutInitWindowPosition(100, 100);
+    glutInitWindowSize(640, 480);
+    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+    glutCreateWindow("boundary Fill Algorithm");
+
+    glutDisplayFunc(display);
+
+    init();
+
+    glutMouseFunc(mouse);
+
+    glutMainLoop();
+
+    return 0;
+}
